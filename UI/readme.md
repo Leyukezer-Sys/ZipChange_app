@@ -1,65 +1,96 @@
-### Como usar a interface gráfica:
+# 🔓 ZIP Password Cracker Pro
 
-# 1. Instalação das dependências:
+Uma aplicação moderna e sofisticada para recuperação de senhas de arquivos ZIP, desenvolvida com CustomTkinter para uma interface elegante e funcional.
+
+## ✨ Características
+
+- **Interface Moderna**: Design escuro com elementos visuais contemporâneos
+- **Quebra de Senhas com Múltiplas Threads**: Suporte a até 16 threads simultâneas
+- **Visualização em Tempo Real**: Gráfico de velocidade de teste de senhas
+- **Estatísticas Detalhadas**: Monitoramento em tempo real do progresso
+- **Limpeza Automática de Wordlists**: Remove senhas duplicadas e caracteres inválidos
+- **Suporte a AES**: Compatível com arquivos ZIP criptografados com AES via pyzipper
+
+## 📦 Requisitos
+
+- Python 3.8 ou superior
+- Dependências listadas no arquivo `requirements.txt`
+
+## 🚀 Instalação
+
+1. Clone ou baixe o projeto
+2. Instale as dependências:
 
 ```bash
-pip install pysimplegui
+pip install -r requirements.txt
 ```
 
-# 2. Executar o programa:
+Ou execute o script que instalará automaticamente as dependências necessárias.
 
+## 📋 Como Usar
+
+1. Execute o aplicativo:
 ```bash
-python zip_cracker_gui.py
+python zip_cracker_pro.py
 ```
 
-# 3. Funcionalidades da interface:
+2. Selecione o arquivo ZIP protegido por senha
+3. Selecione o arquivo de wordlist (lista de senhas para teste)
+4. Ajuste o número de threads conforme a capacidade do seu processador
+5. Clique em "Iniciar" para começar o processo de recuperação
+6. Monitore o progresso nas abas "Output" e "Estatísticas"
 
-- Seleção de arquivo ZIP: Use o botão "Procurar" para selecionar o arquivo ZIP protegido
+## 🎯 Funcionalidades
 
-- Seleção de wordlist: Selecione o arquivo de wordlist com as senhas possíveis
+### Painel Principal
+- Seleção de arquivo ZIP e wordlist
+- Controle de número de threads (1-16)
+- Botões de Iniciar, Parar e Limpar
 
-- Controle de threads: Use o slider para ajustar o número de threads (1-16)
+### Aba de Output
+- Log detalhado de todas as operações
+- Exibição das primeiras senhas da wordlist
+- Resultados finais do processo
 
-- Botões de controle: Iniciar, Parar e Sair
+### Aba de Estatísticas
+- Contador de senhas testadas
+- Velocidade de testes por segundo
+- Tempo decorrido
+- Progresso percentual
+- Gráfico de velocidade em tempo real
 
-- Barra de progresso: Mostra o progresso do processo
+### Recursos Avançados
+- Limpeza automática de wordlists (remove duplicatas e caracteres inválidos)
+- Suporte a arquivos ZIP com criptografia AES
+- Extração automática de arquivos após descoberta da senha
+- Interface responsiva e moderna
 
-- Estatísticas em tempo real: Senhas testadas, velocidade e tempo decorrido
+## 🛠️ Tecnologias Utilizadas
 
-- Área de log: Mostra mensagens detalhadas do processo
+- **CustomTkinter**: Interface gráfica moderna e elegante
+- **PyZipper**: Manipulação de arquivos ZIP com suporte a AES
+- **Matplotlib**: Visualização gráfica do desempenho
+- **Threading**: Processamento paralelo para maior velocidade
 
-# 4. Fluxo de uso:
+## 📊 Performance
 
-- Selecione o arquivo ZIP com senha
+O desempenho varia de acordo com:
+- Tamanho da wordlist
+- Número de threads utilizadas
+- Velocidade do processador
+- Complexidade das senhas
 
-- Selecione o arquivo de wordlist
+## ⚠️ Notas Legais
 
-- Ajuste o número de threads (4 é um bom valor padrão)
+Este software é destinado para:
+- Recuperação de arquivos ZIP dos quais você é o legítimo proprietário
+- Testes de segurança em sistemas próprios
+- Fins educacionais sobre segurança e criptografia
 
-- Clique em "Iniciar" para começar o processo
+Não utilize esta ferramenta para:
+- Acessar arquivos de terceiros sem autorização
+- Qualquer atividade ilegal
 
-- Acompanhe o progresso pela interface
+---
 
-- Se a senha for encontrada, o arquivo será automaticamente extraído
-
-- Use "Parar" para interromper o processo a qualquer momento
-
-## Recursos da interface:
-
-✅ Design moderno e escuro
-
-✅ Atualização em tempo real das estatísticas
-
-✅ Barra de progresso visual
-
-✅ Log detalhado de eventos
-
-✅ Controle de threads ajustável
-
-✅ Botão de parada para interromper o processo
-
-✅ Extração automática ao encontrar a senha
-
-✅ Tratamento de erros com mensagens amigáveis
-
-A interface mantém todas as funcionalidades do programa original, mas com uma experiência de usuário muito mais amigável e visual!
+**Desenvolvido com Python e CustomTkinter** 🐍🎨
