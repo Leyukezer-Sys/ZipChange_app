@@ -1,241 +1,296 @@
+import PySimpleGUI as sg
 import zipfile
+import pyzipper
+import threading
 import time
 import os
-import threading
+import re
 from queue import Queue
-import PySimpleGUI as sg
 
 class ZIPPasswordCrackerGUI:
     def __init__(self):
-        self.theme = sg.theme('DarkGrey5')
-        self.found_password = None
-        self.stop_event = threading.Event()
-        self.tested_passwords = 0
-        self.start_time = 0
+        self.theme = sg.theme('DarkBlue3')
+        self.cracker = None
         self.running = False
+        self.stop_event = threading.Event()
         
         # Layout da interface
         self.layout = [
-            [sg.Text('Quebrador de Senhas ZIP', font=('Helvetica', 16), justification='center')],
+            [sg.Text('Quebrador de Senhas ZIP', font=('Helvetica', 16, 'bold'))],
             [sg.HorizontalSeparator()],
             [
-                sg.Text('Arquivo ZIP:'), 
-                sg.Input(key='-ZIPFILE-', enable_events=True), 
+                sg.Text('Arquivo ZIP:', size=(12, 1)),
+                sg.Input(key='-ZIP_FILE-', enable_events=True),
                 sg.FileBrowse('Procurar', file_types=(('ZIP Files', '*.zip'),))
             ],
             [
-                sg.Text('Wordlist:'), 
-                sg.Input(key='-WORDLIST-', enable_events=True), 
+                sg.Text('Wordlist:', size=(12, 1)),
+                sg.Input(key='-WORDLIST_FILE-', enable_events=True),
                 sg.FileBrowse('Procurar', file_types=(('Text Files', '*.txt'),))
             ],
             [
-                sg.Text('Threads:'),
-                sg.Slider(range=(1, 16), default_value=4, orientation='h', key='-THREADS-')
+                sg.Text('Threads:', size=(12, 1)),
+                sg.Slider(range=(1, 16), default_value=4, orientation='h', key='-THREADS-', size=(20, 15))
             ],
             [
-                sg.Button('Iniciar', key='-START-', size=(10, 1)), 
-                sg.Button('Parar', key='-STOP-', size=(10, 1), disabled=True),
-                sg.Button('Sair', key='-EXIT-', size=(10, 1))
+                sg.Button('Iniciar', key='-START-', size=(10, 1), button_color=('white', 'green')),
+                sg.Button('Parar', key='-STOP-', size=(10, 1), button_color=('white', 'red'), disabled=True),
+                sg.Button('Limpar', key='-CLEAR-', size=(10, 1))
             ],
             [sg.HorizontalSeparator()],
-            [sg.Text('Progresso:', font=('Helvetica', 12))],
-            [sg.ProgressBar(100, orientation='h', size=(50, 20), key='-PROGRESS-')],
-            [sg.Text('Senhas testadas: 0', key='-TESTED-')],
-            [sg.Text('Velocidade: 0 senhas/segundo', key='-SPEED-')],
-            [sg.Text('Tempo decorrido: 0 segundos', key='-TIME-')],
-            [sg.Multiline('', size=(65, 10), key='-OUTPUT-', autoscroll=True, disabled=True)]
+            [
+                sg.Multiline(
+                    key='-OUTPUT-', 
+                    size=(70, 20), 
+                    autoscroll=True, 
+                    reroute_stdout=True, 
+                    write_only=True,
+                    font=('Courier New', 10)
+                )
+            ],
+            [
+                sg.ProgressBar(100, orientation='h', size=(50, 20), key='-PROGRESS-', expand_x=True),
+                sg.Text('0%', key='-PROGRESS_TEXT-', size=(5, 1))
+            ],
+            [
+                sg.Text('Senhas testadas: 0', key='-TESTED-', size=20),
+                sg.Text('Velocidade: 0/s', key='-SPEED-', size=20),
+                sg.Text('Tempo: 00:00:00', key='-TIME-', size=15)
+            ]
         ]
         
         self.window = sg.Window('ZIP Password Cracker', self.layout, finalize=True)
         
-    def test_password(self, zip_ref, password):
-        """Tenta abrir o arquivo ZIP com uma senha"""
+    def clean_password(self, password):
+        """Remove tabs, espaços extras e caracteres não imprimíveis"""
+        cleaned = password.strip()
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+        cleaned = ''.join(char for char in cleaned if char.isprintable())
+        return cleaned
+        
+    def read_and_clean_wordlist(self, wordlist_file):
+        """Lê e limpa a wordlist"""
+        cleaned_passwords = []
         try:
-            # Tenta extrair um arquivo com a senha
-            with zip_ref.open(zip_ref.namelist()[0], pwd=password.encode()) as f:
-                # Se não der erro, a senha está correta
+            with open(wordlist_file, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    cleaned_line = self.clean_password(line)
+                    if cleaned_line and cleaned_line not in cleaned_passwords:
+                        cleaned_passwords.append(cleaned_line)
+            return cleaned_passwords
+        except Exception as e:
+            print(f"Erro ao ler wordlist: {e}")
+            return None
+    
+    def test_password(self, zip_ref, password):
+        """Testa uma senha no arquivo ZIP"""
+        try:
+            file_to_test = zip_ref.namelist()[0]
+            with zip_ref.open(file_to_test, pwd=password.encode('utf-8')) as f:
+                f.read(1)
                 return True
         except:
             return False
     
-    def worker(self, password_queue, zip_file, window):
-        """Thread worker que testa senhas"""
-        with zipfile.ZipFile(zip_file) as zip_ref:
-            while not self.stop_event.is_set():
-                try:
-                    password = password_queue.get_nowait()
-                    self.tested_passwords += 1
-                    
-                    # Atualiza a interface a cada 100 senhas
-                    if self.tested_passwords % 100 == 0:
-                        elapsed = time.time() - self.start_time
-                        window.write_event_value('-UPDATE-', {
-                            'tested': self.tested_passwords,
-                            'speed': self.tested_passwords / elapsed,
-                            'time': elapsed
-                        })
-                    
-                    # Testa a senha
-                    if self.test_password(zip_ref, password):
-                        self.found_password = password
-                        self.stop_event.set()
-                        window.write_event_value('-FOUND-', password)
-                        break
-                        
-                    password_queue.task_done()
-                    
-                except:
-                    break
-        
-        # Se a fila estiver vazia e não encontrou senha
-        if not self.found_password and password_queue.empty():
-            window.write_event_value('-NOTFOUND-', None)
-    
-    def crack(self, zip_file, wordlist_file, max_threads, window):
+    def crack_password(self, zip_file, wordlist_file, max_threads):
         """Método principal para quebrar a senha"""
-        self.start_time = time.time()
-        self.tested_passwords = 0
-        self.found_password = None
+        self.running = True
         self.stop_event.clear()
         
-        # Lê a wordlist
-        try:
-            with open(wordlist_file, 'r', encoding='utf-8', errors='ignore') as f:
-                passwords = [line.strip() for line in f if line.strip()]
-        except Exception as e:
-            window.write_event_value('-ERROR-', f"Erro ao ler wordlist: {e}")
+        print(f"Iniciando quebra de senha para: {zip_file}")
+        print(f"Usando wordlist: {wordlist_file}")
+        print(f"Threads: {max_threads}")
+        print("-" * 50)
+        
+        # Verifica se os arquivos existem
+        if not os.path.exists(zip_file):
+            print(f"Erro: Arquivo ZIP '{zip_file}' não encontrado!")
+            self.running = False
+            return
+            
+        if not os.path.exists(wordlist_file):
+            print(f"Erro: Wordlist '{wordlist_file}' não encontrada!")
+            self.running = False
+            return
+        
+        # Lê e limpa a wordlist
+        print("Limpando wordlist...")
+        passwords = self.read_and_clean_wordlist(wordlist_file)
+        
+        if passwords is None:
+            self.running = False
             return
         
         total_passwords = len(passwords)
-        window.write_event_value('-STATUS-', f"Total de senhas na wordlist: {total_passwords}")
+        print(f"Total de senhas únicas: {total_passwords:,}")
+        print(f"Primeiras 5 senhas: {passwords[:5]}")
         
         # Cria queue com todas as senhas
         password_queue = Queue()
         for password in passwords:
+            if self.stop_event.is_set():
+                break
             password_queue.put(password)
+        
+        # Variáveis para acompanhamento
+        tested_passwords = 0
+        found_password = None
+        start_time = time.time()
+        
+        # Função do worker
+        def worker():
+            nonlocal tested_passwords, found_password
+            try:
+                with pyzipper.AESZipFile(zip_file) as zip_ref:
+                    while not self.stop_event.is_set() and not password_queue.empty():
+                        try:
+                            password = password_queue.get_nowait()
+                            tested_passwords += 1
+                            
+                            # Atualiza interface a cada 10 senhas
+                            if tested_passwords % 10 == 0:
+                                elapsed = time.time() - start_time
+                                self.window['-TESTED-'].update(f'Senhas testadas: {tested_passwords}')
+                                self.window['-SPEED-'].update(f'Velocidade: {tested_passwords/elapsed:.0f}/s')
+                                self.window['-TIME-'].update(f'Tempo: {time.strftime("%H:%M:%S", time.gmtime(elapsed))}')
+                                progress = min(100, (tested_passwords / total_passwords) * 100)
+                                self.window['-PROGRESS-'].update(progress)
+                                self.window['-PROGRESS_TEXT-'].update(f'{progress:.1f}%')
+                            
+                            # Testa a senha
+                            if self.test_password(zip_ref, password):
+                                found_password = password
+                                self.stop_event.set()
+                                print(f"\n🎉 SENHA ENCONTRADA: '{password}'")
+                                break
+                                
+                            password_queue.task_done()
+                            
+                        except:
+                            break
+            except Exception as e:
+                print(f"Erro ao processar arquivo ZIP: {e}")
         
         # Inicia as threads
         threads = []
         for i in range(max_threads):
-            thread = threading.Thread(target=self.worker, args=(password_queue, zip_file, window))
+            if self.stop_event.is_set():
+                break
+            thread = threading.Thread(target=worker)
             thread.daemon = True
             thread.start()
             threads.append(thread)
         
-        # Aguarda conclusão ou senha encontrada
-        while not self.stop_event.is_set() and any(thread.is_alive() for thread in threads):
-            time.sleep(0.1)
+        # Aguarda conclusão
+        try:
+            while not self.stop_event.is_set() and any(thread.is_alive() for thread in threads):
+                time.sleep(0.1)
+                
+                if password_queue.empty():
+                    self.stop_event.set()
+                    
+        except:
+            pass
+        
+        # Resultado final
+        elapsed = time.time() - start_time
+        print("\n" + "=" * 50)
+        print("RESULTADO DA BUSCA:")
+        print(f"Tempo decorrido: {elapsed:.2f} segundos")
+        print(f"Senhas testadas: {tested_passwords}")
+        
+        if elapsed > 0:
+            print(f"Velocidade média: {tested_passwords/elapsed:.2f} senhas/segundo")
+        
+        if found_password:
+            print(f"✅ SENHA ENCONTRADA: '{found_password}'")
             
-            if password_queue.empty():
-                self.stop_event.set()
+            # Tenta extrair os arquivos
+            try:
+                with pyzipper.AESZipFile(zip_file) as zip_ref:
+                    zip_ref.extractall(pwd=found_password.encode('utf-8'))
+                    print(f"✅ Arquivos extraídos com sucesso!")
+                    print(f"✅ Arquivos desbloqueados: {zip_ref.namelist()}")
+            except Exception as e:
+                print(f"⚠️  Erro na extração: {e}")
+        else:
+            print("❌ Senha não encontrada na wordlist")
+            
+            if tested_passwords < total_passwords:
+                print(f"⚠️  Interrompido pelo usuário")
+        
+        self.running = False
+        self.window['-START-'].update(disabled=False)
+        self.window['-STOP-'].update(disabled=True)
     
     def run(self):
         """Loop principal da interface"""
         while True:
             event, values = self.window.read(timeout=100)
             
-            if event in (sg.WIN_CLOSED, '-EXIT-'):
+            if event == sg.WINDOW_CLOSED:
+                self.stop_event.set()
                 break
                 
             elif event == '-START-':
-                zip_file = values['-ZIPFILE-']
-                wordlist = values['-WORDLIST-']
-                threads = int(values['-THREADS-'])
-                
-                if not zip_file or not wordlist:
+                if not values['-ZIP_FILE-'] or not values['-WORDLIST_FILE-']:
                     sg.popup_error('Selecione o arquivo ZIP e a wordlist!')
                     continue
                 
-                if not os.path.exists(zip_file):
-                    sg.popup_error('Arquivo ZIP não encontrado!')
-                    continue
-                    
-                if not os.path.exists(wordlist):
-                    sg.popup_error('Wordlist não encontrada!')
-                    continue
-                
-                self.running = True
                 self.window['-START-'].update(disabled=True)
                 self.window['-STOP-'].update(disabled=False)
                 self.window['-OUTPUT-'].update('')
                 
                 # Inicia a thread de quebra de senha
-                threading.Thread(
-                    target=self.crack, 
-                    args=(zip_file, wordlist, threads, self.window),
+                thread = threading.Thread(
+                    target=self.crack_password,
+                    args=(
+                        values['-ZIP_FILE-'],
+                        values['-WORDLIST_FILE-'],
+                        int(values['-THREADS-'])
+                    ),
                     daemon=True
-                ).start()
+                )
+                thread.start()
                 
             elif event == '-STOP-':
                 self.stop_event.set()
-                self.running = False
-                self.window['-START-'].update(disabled=False)
-                self.window['-STOP-'].update(disabled=True)
-                self.window['-OUTPUT-'].print("⏹️ Processo interrompido pelo usuário")
-                
-            elif event == '-UPDATE-':
-                tested = values[event]['tested']
-                speed = values[event]['speed']
-                elapsed = values[event]['time']
-                
-                self.window['-TESTED-'].update(f'Senhas testadas: {tested}')
-                self.window['-SPEED-'].update(f'Velocidade: {speed:.2f} senhas/segundo')
-                self.window['-TIME-'].update(f'Tempo decorrido: {elapsed:.2f} segundos')
-                
-                # Atualiza a barra de progresso (assumindo 100000 como máximo para exemplo)
-                progress = min(100, (tested / 100000) * 100)
-                self.window['-PROGRESS-'].update(progress)
-                
-            elif event == '-FOUND-':
-                password = values[event]
-                elapsed = time.time() - self.start_time
-                
-                self.window['-OUTPUT-'].print(f"✅ SENHA ENCONTRADA: {password}")
-                self.window['-OUTPUT-'].print(f"✅ Tempo total: {elapsed:.2f} segundos")
-                self.window['-OUTPUT-'].print(f"✅ Senhas testadas: {self.tested_passwords}")
-                
-                # Tenta extrair o arquivo
-                try:
-                    with zipfile.ZipFile(values['-ZIPFILE-']) as zip_ref:
-                        zip_ref.extractall(pwd=password.encode())
-                    self.window['-OUTPUT-'].print("✅ Arquivo extraído com sucesso!")
-                except Exception as e:
-                    self.window['-OUTPUT-'].print(f"⚠️ Erro na extração: {e}")
-                
-                self.running = False
+                print("⏹️  Interrompido pelo usuário")
                 self.window['-START-'].update(disabled=False)
                 self.window['-STOP-'].update(disabled=True)
                 
-            elif event == '-NOTFOUND-':
-                elapsed = time.time() - self.start_time
-                
-                self.window['-OUTPUT-'].print("❌ Senha não encontrada na wordlist")
-                self.window['-OUTPUT-'].print(f"⏱️ Tempo total: {elapsed:.2f} segundos")
-                self.window['-OUTPUT-'].print(f"🔢 Senhas testadas: {self.tested_passwords}")
-                
-                self.running = False
-                self.window['-START-'].update(disabled=False)
-                self.window['-STOP-'].update(disabled=True)
-                
-            elif event == '-STATUS-':
-                self.window['-OUTPUT-'].print(values[event])
-                
-            elif event == '-ERROR-':
-                self.window['-OUTPUT-'].print(values[event])
-                self.running = False
-                self.window['-START-'].update(disabled=False)
-                self.window['-STOP-'].update(disabled=True)
+            elif event == '-CLEAR-':
+                self.window['-OUTPUT-'].update('')
+                self.window['-PROGRESS-'].update(0)
+                self.window['-PROGRESS_TEXT-'].update('0%')
+                self.window['-TESTED-'].update('Senhas testadas: 0')
+                self.window['-SPEED-'].update('Velocidade: 0/s')
+                self.window['-TIME-'].update('Tempo: 00:00:00')
         
         self.window.close()
 
-if __name__ == "__main__":
-    # Verifica se o PySimpleGUI está instalado, se não, instala
+# Instalação das dependências necessárias
+def install_dependencies():
     try:
         import PySimpleGUI
     except ImportError:
-        import os
-        os.system('pip install pysimplegui')
-        import PySimpleGUI as sg
-        
+        import subprocess
+        import sys
+        print("Instalando PySimpleGUI...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "PySimpleGUI"])
+    
+    try:
+        import pyzipper
+    except ImportError:
+        import subprocess
+        import sys
+        print("Instalando pyzipper...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyzipper"])
+
+if __name__ == "__main__":
+    # Instala dependências automaticamente
+    install_dependencies()
+    
+    # Inicia a interface
     app = ZIPPasswordCrackerGUI()
     app.run()

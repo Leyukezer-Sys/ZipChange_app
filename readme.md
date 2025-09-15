@@ -1,150 +1,219 @@
 # ZIP Password Cracker 🔓
 
-Um programa em Python para fins educacionais que demonstra como realizar quebra de senhas em arquivos ZIP usando wordlists (listas de palavras).
+Um quebrador de senhas para arquivos ZIP desenvolvido em Python, perfeito para estudos e recuperação de arquivos protegidos.
 
-## ⚠️ AVISO LEGAL
+## 📋 Funcionalidades
 
-**ESTE PROGRAMA É APENAS PARA FINS EDUCACIONAIS E DE TESTE DE SEGURANÇA.**
+- 🔍 Quebra de senhas ZIP usando wordlists
+- 🧹 Limpeza automática de wordlists (remove tabs, espaços e quebras de linha)
+- ⚡ Multi-threading para maior velocidade
+- 📊 Estatísticas em tempo real (velocidade, senhas testadas)
+- ✅ Suporte a métodos de compressão avançados (incluindo AES)
+- 🖥️ Compatível com Windows e Linux
 
-- Use apenas em arquivos ZIP dos quais você é o proprietário
-- Nunca utilize para violar a privacidade ou propriedade de terceiros
-- Respeite as leis locais de privacidade e propriedade intelectual
+## 🛠️ Pré-requisitos
 
-## 📋 Pré-requisitos
+### Para Windows:
 
-- Python 3.6 ou superior
-- Arquivo ZIP protegido por senha
-- Arquivo de wordlist (lista de senhas possíveis)
+```bash
+# Instale o Python (se ainda não tiver)
+# Baixe em: https://python.org/downloads/
+
+# Verifique a instalação
+python --version
+pip --version
+```
+
+### Para Linux (Ubuntu/Debian):
+
+```bash
+# Instale o Python e pip
+sudo apt update
+sudo apt install python3 python3-pip
+
+# Verifique a instalação
+python3 --version
+pip3 --version
+```
+
+## 📦 Instalação
+
+1. **Clone ou baixe o projeto**
+
+```bash
+# Via Git
+git clone <url-do-repositorio>
+cd ZipChange_app
+
+# Ou baixe manualmente e extraia os arquivos
+```
+
+2. **Instale as dependências**
+
+```bash
+# Windows
+pip install pyzipper
+
+# Linux
+pip3 install pyzipper
+```
 
 ## 🚀 Como usar
 
 ### Sintaxe básica:
 
 ```bash
-python zipchange.py <arquivo_zip> <wordlist> [--threads NUM]
+# Windows
+python zipchange.py arquivo.zip wordlist.txt
+
+# Linux
+python3 zipchange.py arquivo.zip wordlist.txt
 ```
 
-### Exemplos:
+### Exemplos de uso:
 
-#### Exemplo 1 - Uso básico:
+**Uso básico (4 threads padrão):**
 
 ```bash
-python zipchange.py arquivo_protegido.zip wordlist.txt
+python zipchange.py arquivo_secreto.zip wordlist.txt
 ```
 
-#### Exemplo 2 - Com múltiplas threads (mais rápido):
+**Com número específico de threads:**
 
 ```bash
-python zipchange.py arquivo_protegido.zip wordlist.txt --threads 8
+python zipchange.py arquivo_secreto.zip wordlist.txt -t 8
 ```
 
-#### Exemplo 3 - Usando caminhos relativos:
+**Usando wordlist comum:**
 
 ```bash
-python zipchange.py ./documentos/arquivo.zip ./wordlists/rockyou.txt -t 4
+python zipchange.py documento_protegido.zip rockyou.txt -t 6
 ```
+
+### Parâmetros:
+
+- `arquivo.zip` - Arquivo ZIP protegido por senha
+- `wordlist.txt` - Arquivo com lista de senhas para testar
+- `-t, --threads` - Número de threads (opcional, padrão: 4)
 
 ## 📁 Estrutura de arquivos
 
 ```
-projeto/
-├── zipchange.py          # Programa principal
+ZipChange_app/
+├── zipchange.py          # Script principal
 └── README.md            # Este arquivo
 ```
 
-## ⚡ Parâmetros do programa
+## 🗂️ Wordlists recomendadas
 
-| Parâmetro       | Descrição                            | Valor padrão  |
-| --------------- | ------------------------------------ | ------------- |
-| `arquivo_zip`   | Caminho para o arquivo ZIP protegido | (obrigatório) |
-| `wordlist`      | Caminho para o arquivo de wordlist   | (obrigatório) |
-| `-t, --threads` | Número de threads para paralelismo   | `4`           |
+Algumas wordlists populares para uso:
 
-## 📈 Funcionalidades
+1. **TOP500.txt** - 500 senhas mais comuns
+2. **rockyou.txt** - Lista extensa com milhões de senhas
+3. **custom_list.txt** - Sua lista personalizada
 
-- ✅ **Multi-threading** para maior velocidade
-- ✅ **Barra de progresso** com estatísticas em tempo real
-- ✅ **Tratamento de erros** robusto
-- ✅ **Compatível** com diferentes encodings de arquivo
-- ✅ **Interrupção segura** com Ctrl+C
-- ✅ **Relatório detalhado** de performance ao final
+### Onde encontrar wordlists:
 
-## 🎯 Exemplo de saída
+- [RockYou.txt](https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt)
+- [Seclists](https://github.com/danielmiessler/SecLists)
+- [Criar suas próprias wordlists](https://github.com/Mebus/cupp)
+
+## ⚡ Melhores práticas
+
+### Para melhor performance:
+
+```bash
+# Use mais threads para CPUs potentes
+python zipchange.py arquivo.zip wordlist.txt -t 12
+
+# Use wordlists organizadas (senhas mais prováveis primeiro)
+# Wordlists limpas (sem caracteres especiais) funcionam melhor
+```
+
+### Para wordlists grandes:
+
+```bash
+# Divida wordlists muito grandes em partes
+split -l 1000000 rockyou.txt rockyou_part_
+
+# Execute em paralelo se necessário
+python zipchange.py arquivo.zip rockyou_part_aa.txt -t 8
+python zipchange.py arquivo.zip rockyou_part_ab.txt -t 8
+```
+
+## 📊 Exemplo de saída
 
 ```
-Iniciando quebra de senha para: arquivo_protegido.zip
-Usando wordlist: wordlist.txt
+Iniciando quebra de senha para: arquivo_secreto.zip
+Usando wordlist: TOP500.txt
 Threads: 4
 --------------------------------------------------
-Total de senhas na wordlist: 10,000
+Limpando wordlist (removendo tabs, espaços e quebras de linha)...
+Linhas originais na wordlist: 602
+Senhas únicas após limpeza: 556
+Total de senhas únicas após limpeza: 556
+Primeiras 10 senhas limpas: ['123456', 'password', '123456789', ...]
 
-Testadas 1000 senhas. Velocidade: 850.32 senhas/segundo
-Testadas 2000 senhas. Velocidade: 880.15 senhas/segundo
-
-✅ SENHA ENCONTRADA: minhasenha
+Testadas 100 senhas. Velocidade: 1250.50 senhas/segundo
+Testadas 200 senhas. Velocidade: 1350.75 senhas/segundo
 
 ==================================================
 RESULTADO DA BUSCA:
-Tempo decorrido: 12.45 segundos
-Senhas testadas: 2345
-Velocidade média: 188.35 senhas/segundo
-✅ SENHA ENCONTRADA: 'minhasenha'
+
+✅ SENHA ENCONTRADA: 'matrix'
+✅ Arquivos extraídos com sucesso!
+
+Tempo decorrido: 0.45 segundos
+Senhas testadas: 288
+Velocidade média: 640.00 senhas/segundo
+✅ OPERAÇÃO CONCLUÍDA COM SUCESSO!
 ```
 
-## 🔍 Dicas para uso eficiente
+## 🐛 Solução de problemas
 
-1. **Ordene sua wordlist** - Coloque as senhas mais prováveis no início
-2. **Use threads adequadas** - 4-8 threads geralmente é o ideal
-3. **Wordlists grandes** - Para listas muito grandes, considere filtrar senhas irrelevantes
-4. **Monitoramento** - O programa mostra progresso a cada 1000 tentativas
+### Erro comum: `ModuleNotFoundError: No module named 'pyzipper'`
 
-## 🛠️ Solução de problemas
+**Solução:**
 
-### Erro: "Arquivo ZIP não encontrado"
+# Windows
 
-- Verifique o caminho do arquivo
-- Use caminhos absolutos se necessário
+```bash
+pip install pyzipper
+```
 
-### Erro: "Wordlist não encontrada"
+# Linux
 
-- Confirme que o arquivo de wordlist existe
-- Verifique permissões de leitura
+```bash
+pip3 install pyzipper
 
-### Erro de encoding:
+# Se ainda não funcionar
+python -m pip install pyzipper
+```
 
-- O programa trata automaticamente diferentes encodings
-- Para wordlists problemáticas, tente salvar como UTF-8
+### Erro: `That compression method is not supported`
 
-### Desempenho lento:
+**Solução:** O script já usa pyzipper que suporta mais métodos de compressão.
 
-- Aumente o número de threads com `--threads`
-- Verifique a performance do seu disco e CPU
+### Performance lenta:
 
-## 📚 Aprendizados educacionais
+**Soluções:**
 
-Este programa demonstra:
+- Aumente o número de threads: `-t 8`
+- Use wordlists menores primeiro
+- Verifique se a wordlist está limpa
 
-- Manipulação de arquivos ZIP em Python
-- Programação multi-threaded
-- Tratamento de exceções
-- Parsing de argumentos de linha de comando
-- Leitura e processamento de grandes arquivos
-- Cálculo de performance e estatísticas
+## ⚠️ Aviso legal
 
-## ⚠️ Limitações conhecidas
+Este software é destinado apenas para:
 
-- Funciona apenas com arquivos ZIP tradicionais (não ZIP criptografado AES)
-- A velocidade depende muito do hardware
-- Não inclui técnicas avançadas como rainbow tables
+- ✅ Estudos educacionais de segurança
+- ✅ Recuperação de arquivos pessoais esquecidos
+- ✅ Testes de penetração autorizados
 
-## 🤝 Contribuições
+**NÃO USE** para:
 
-Contribuições são bem-vindas! Sinta-se à vontade para:
+- ❌ Acessar arquivos de outras pessoas sem permissão
+- ❌ Qualquer atividade ilegal
+- ❌ Violar privacidade alheia
 
-- Reportar bugs
-- Sugerir melhorias
-- Adicionar novas funcionalidades
-
----
-
-**Lembre-se: Use sempre de forma ética e responsável!** 🔐
+O uso deste software para atividades ilegais é de sua total responsabilidade.
